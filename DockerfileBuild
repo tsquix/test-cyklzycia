@@ -1,0 +1,37 @@
+# Etap budowania
+FROM eclipse-temurin:17-jdk AS build
+
+# Zainstaluj Maven
+RUN apt-get update && \
+    apt-get install -y maven
+
+# Ustaw katalog roboczy
+WORKDIR /app
+
+# Skopiuj pliki pom.xml
+COPY pom.xml .
+COPY evolution/pom.xml evolution/
+COPY links/pom.xml links/
+COPY nonrest/pom.xml nonrest/
+COPY rest/pom.xml rest/
+
+# Skopiuj kod źródłowy
+COPY evolution/src evolution/src
+COPY links/src links/src
+COPY nonrest/src nonrest/src
+COPY rest/src rest/src
+
+# Zbuduj projekt
+RUN mvn clean package -DskipTests
+
+# Etap finalny
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+
+# Skopiuj zbudowany jar z etapu budowania
+COPY --from=build /app/rest/target/rest-0.0.1-SNAPSHOT.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
